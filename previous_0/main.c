@@ -1,4 +1,5 @@
 #include <conio.h>
+#include <dos.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,6 +8,47 @@
 #include <time.h>
 
 #include "framebuf.h"
+
+#define VIDEO_INT 0x10          /* the BIOS video interrupt. */
+#define SET_MODE 0x00           /* BIOS func to set the video mode. */
+#define VGA_256_COLOR_MODE 0x13 /* use to set 256-color mode. */
+#define TEXT_MODE 0x03          /* use to set 80x25 text mode. */
+
+#define MISC_OUTPUT 0x03c2 /* VGA misc. output register */
+#define SC_INDEX 0x03c4    /* VGA sequence controller */
+#define SC_DATA 0x03c5
+#define PALETTE_INDEX 0x03c8 /* VGA digital-to-analog converter */
+#define PALETTE_DATA 0x03c9
+#define CRTC_INDEX 0x03d4 /* VGA CRT controller */
+
+#define MAP_MASK 0x02 /* Sequence controller registers */
+#define MEMORY_MODE 0x04
+
+#define H_TOTAL 0x00 /* CRT controller registers */
+#define H_DISPLAY_END 0x01
+#define H_BLANK_START 0x02
+#define H_BLANK_END 0x03
+#define H_RETRACE_START 0x04
+#define H_RETRACE_END 0x05
+#define V_TOTAL 0x06
+#define OVERFLOW 0x07
+#define MAX_SCAN_LINE 0x09
+#define V_RETRACE_START 0x10
+#define V_RETRACE_END 0x11
+#define V_DISPLAY_END 0x12
+#define OFFSET 0x13
+#define UNDERLINE_LOCATION 0x14
+#define V_BLANK_START 0x15
+#define V_BLANK_END 0x16
+#define MODE_CONTROL 0x17
+
+#define NUM_COLORS 256 /* number of colors in mode 0x13 */
+
+#define SR 0x3da /* Input Status Register */
+#define VRETRACE 0x08
+
+/* macro to write a word to a port */
+#define word_out(port, reg, value) outpw(port, (((uint16_t)value << 8) + reg))
 
 uint8_t* VGA = (uint8_t*)0xA0000; /* this points to video memory. */
 
@@ -83,11 +125,6 @@ void set_unchained_mode(int width, int height)
     {
         word_out(CRTC_INDEX, MAX_SCAN_LINE, 0x40);
     }
-
-    if (width == 320 && height == 240)
-    {
-        word_out(CRTC_INDEX, PAGE_LSB, 0x00);
-    }
 }
 
 #define frbMulW(value) (((value) << 8) + ((value) << 6))
@@ -137,7 +174,6 @@ int main(int argc, char** argv)
 
     VGA += __djgpp_conventional_base;
 
-    // modes other than 320x240 are not currently supported by framebuf_flip
     set_unchained_mode(320, 240);
 
     const unsigned char colors[30] = {15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5,  4,  3,  2,  1,
@@ -197,7 +233,7 @@ int main(int argc, char** argv)
         if (y1Index >= 120)
             y1Index -= 120;
 
-        framebuf_flip(VGA, 0);
+        framebuf_flip(VGA);
     }
 
     clock_t endTime = clock();

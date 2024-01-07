@@ -4,7 +4,7 @@ STRS=s
 rm -f *.o *.s
 i586-pc-msdosdjgpp-gcc -O2 -c main.c
 
-for i in 4
+for i in 0 1 2 3
 do
 rm -f modex$i.exe modex$i$STRS.exe
 i586-pc-msdosdjgpp-gcc -O2 -c framebuf$i.c
