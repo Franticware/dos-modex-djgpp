@@ -1,8 +1,8 @@
 #ifndef FRAMEBUF_H
 #define FRAMEBUF_H
 
-#include <stdint.h>
 #include <dos.h>
+#include <stdint.h>
 
 #define VIDEO_INT 0x10          /* the BIOS video interrupt. */
 #define SET_MODE 0x00           /* BIOS func to set the video mode. */
@@ -28,8 +28,8 @@
 #define V_TOTAL 0x06
 #define OVERFLOW 0x07
 #define MAX_SCAN_LINE 0x09
-#define PAGE_MSB        0x0C
-#define PAGE_LSB         0x0D
+#define PAGE_MSB 0x0C
+#define PAGE_LSB 0x0D
 #define V_RETRACE_START 0x10
 #define V_RETRACE_END 0x11
 #define V_DISPLAY_END 0x12

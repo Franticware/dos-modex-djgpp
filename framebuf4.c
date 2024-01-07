@@ -122,7 +122,7 @@ void framebuf_flip(uint8_t* VGA, int vsync)
     while (vsync && (inportb(SR) & VRETRACE))
         ;
 
-    word_out(CRTC_INDEX, PAGE_MSB, ((320*240)>>10)*target_page);
+    word_out(CRTC_INDEX, PAGE_MSB, ((320 * 240) >> 10) * target_page);
 
     while (vsync && !(inportb(SR) & VRETRACE))
         ;
