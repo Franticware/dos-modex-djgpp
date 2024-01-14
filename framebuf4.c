@@ -1,5 +1,5 @@
 #include "framebuf.h"
-
+#include "vgamodes.h"
 #include <stddef.h>
 #include <string.h>
 

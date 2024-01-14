@@ -6,126 +6,9 @@
 #include <sys/nearptr.h>
 #include <time.h>
 
+#include "draw.h"
 #include "framebuf.h"
-
-uint8_t* VGA = (uint8_t*)0xA0000; /* this points to video memory. */
-
-void set_mode(uint8_t mode)
-{
-    union REGS regs;
-
-    regs.h.ah = SET_MODE;
-    regs.h.al = mode;
-    int86(VIDEO_INT, &regs, &regs);
-}
-
-void set_unchained_mode(int width, int height)
-{
-    uint16_t i;
-    uint32_t* ptr = (uint32_t*)VGA;
-
-    /* set mode 13 */
-    set_mode(VGA_256_COLOR_MODE);
-
-    /* turn off chain-4 mode */
-    word_out(SC_INDEX, MEMORY_MODE, 0x06);
-
-    /* set map mask to all 4 planes for screen clearing */
-    word_out(SC_INDEX, MAP_MASK, 0xff);
-
-    /* clear all 256K of memory */
-    for (i = 0; i < 0x4000; i++)
-        *ptr++ = 0;
-
-    /* turn off long mode */
-    word_out(CRTC_INDEX, UNDERLINE_LOCATION, 0x00);
-
-    /* turn on byte mode */
-    word_out(CRTC_INDEX, MODE_CONTROL, 0xe3);
-
-    if (width == 360)
-    {
-        /* turn off write protect */
-        word_out(CRTC_INDEX, V_RETRACE_END, 0x2c);
-
-        outp(MISC_OUTPUT, 0xe7);
-        word_out(CRTC_INDEX, H_TOTAL, 0x6b);
-        word_out(CRTC_INDEX, H_DISPLAY_END, 0x59);
-        word_out(CRTC_INDEX, H_BLANK_START, 0x5a);
-        word_out(CRTC_INDEX, H_BLANK_END, 0x8e);
-        word_out(CRTC_INDEX, H_RETRACE_START, 0x5e);
-        word_out(CRTC_INDEX, H_RETRACE_END, 0x8a);
-        word_out(CRTC_INDEX, OFFSET, 0x2d);
-
-        /* set vertical retrace back to normal */
-        word_out(CRTC_INDEX, V_RETRACE_END, 0x8e);
-    }
-    else
-    {
-        outp(MISC_OUTPUT, 0xe3);
-    }
-
-    if (height == 240 || height == 480)
-    {
-        /* turn off write protect */
-        word_out(CRTC_INDEX, V_RETRACE_END, 0x2c);
-
-        word_out(CRTC_INDEX, V_TOTAL, 0x0d);
-        word_out(CRTC_INDEX, OVERFLOW, 0x3e);
-        word_out(CRTC_INDEX, V_RETRACE_START, 0xea);
-        word_out(CRTC_INDEX, V_RETRACE_END, 0xac);
-        word_out(CRTC_INDEX, V_DISPLAY_END, 0xdf);
-        word_out(CRTC_INDEX, V_BLANK_START, 0xe7);
-        word_out(CRTC_INDEX, V_BLANK_END, 0x06);
-    }
-
-    if (height == 400 || height == 480)
-    {
-        word_out(CRTC_INDEX, MAX_SCAN_LINE, 0x40);
-    }
-
-    if (width == 320 && height == 240)
-    {
-        word_out(CRTC_INDEX, PAGE_LSB, 0x00);
-    }
-}
-
-#define frbMulW(value) (((value) << 8) + ((value) << 6))
-
-void drawPoint(int32_t x, int32_t y, uint8_t c)
-{
-    if (x < 0 || x >= 320)
-        return;
-    if (y < 0 || y >= 240)
-        return;
-    framebuf[x + frbMulW(y)] = c;
-}
-
-void drawLine(int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint8_t c)
-{
-    int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
-    int dy = abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
-    int err = (dx > dy ? dx : -dy) / 2;
-    int e2;
-    for (;;)
-    {
-        // drawPoint(x0,y0,c); // orig
-        if (x0 == x1 && y0 == y1)
-            break;
-        drawPoint(x0, y0, c); // do not draw end point
-        e2 = err;
-        if (e2 > -dx)
-        {
-            err -= dy;
-            x0 += sx;
-        }
-        if (e2 < dy)
-        {
-            err += dx;
-            y0 += sy;
-        }
-    }
-}
+#include "vgamodes.h"
 
 int main(int argc, char** argv)
 {
@@ -135,10 +18,11 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    uint8_t* VGA = (uint8_t*)0xA0000; /* this points to video memory. */
     VGA += __djgpp_conventional_base;
 
     // modes other than 320x240 are not currently supported by framebuf_flip
-    set_unchained_mode(320, 240);
+    set_unchained_mode(320, 240, VGA);
 
     const unsigned char colors[30] = {15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5,  4,  3,  2,  1,
                                       0,  1,  2,  3,  4,  5,  6, 7, 8, 9, 10, 11, 12, 13, 14};
